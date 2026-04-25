@@ -1,0 +1,17 @@
+USER_ROLE = "user"
+ADMIN_ROLE = "admin"
+
+VERDICT_PENDING = "Pending"
+VERDICT_ACCEPTED = "Accepted"
+VERDICT_WRONG_ANSWER = "Wrong Answer"
+VERDICT_TIME_LIMIT_EXCEEDED = "Time Limit Exceeded"
+VERDICT_RUNTIME_ERROR = "Runtime Error"
+VERDICT_COMPILATION_ERROR = "Compilation Error"
+
+DIFFICULTY_EASY = "Easy"
+DIFFICULTY_MEDIUM = "Medium"
+DIFFICULTY_HARD = "Hard"
+
+CONTEST_UPCOMING = "Upcoming"
+CONTEST_RUNNING = "Running"
+CONTEST_FINISHED = "Finished"
