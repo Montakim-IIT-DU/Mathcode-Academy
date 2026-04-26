@@ -17,6 +17,7 @@ function ProblemStatement({ problem }) {
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "14px" }}>
         <span className="badge badge-primary">{problem.code}</span>
         <span className="badge badge-warning">{problem.difficulty}</span>
+        <span className="badge badge-primary">Topic: {problem.topic || "General"}</span>
         <span className="badge badge-primary">Time: {problem.time_limit}s</span>
         <span className="badge badge-primary">Memory: {problem.memory_limit}MB</span>
       </div>

@@ -1,7 +1,7 @@
 import api from "./axios";
 
 export const getTestcases = async () => {
-  const response = await api.get("/testcases");
+  const response = await api.get("/testcases/");
   return response.data;
 };
 
@@ -16,7 +16,12 @@ export const getTestcaseById = async (id) => {
 };
 
 export const createTestcase = async (payload) => {
-  const response = await api.post("/testcases", payload);
+  const response = await api.post("/testcases/", payload);
+  return response.data;
+};
+
+export const updateTestcase = async (id, payload) => {
+  const response = await api.put(`/testcases/${id}`, payload);
   return response.data;
 };
 

@@ -6,6 +6,7 @@ function ProblemListPage() {
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [topicFilter, setTopicFilter] = useState("All");
 
   useEffect(() => {
     const fetchProblems = async () => {
@@ -22,9 +23,16 @@ function ProblemListPage() {
     fetchProblems();
   }, []);
 
-  const filteredProblems = problems.filter((p) =>
-    filter === "All" ? true : p.difficulty === filter
+  const topics = Array.from(
+    new Set(problems.map((problem) => problem.topic || "General"))
   );
+
+  const filteredProblems = problems.filter((p) => {
+    const difficultyMatches = filter === "All" || p.difficulty === filter;
+    const topicMatches = topicFilter === "All" || (p.topic || "General") === topicFilter;
+
+    return difficultyMatches && topicMatches;
+  });
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -73,6 +81,25 @@ function ProblemListPage() {
               {difficulty}
             </button>
           ))}
+          <select
+            value={topicFilter}
+            onChange={(e) => setTopicFilter(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #dbe2f0",
+              background: "#fff",
+              color: "#374151",
+              fontWeight: "700"
+            }}
+          >
+            <option value="All">All Topics</option>
+            {topics.map((topic) => (
+              <option key={topic} value={topic}>
+                {topic}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -82,6 +109,7 @@ function ProblemListPage() {
             <tr>
               <th style={thStyle}>ID</th>
               <th style={thStyle}>Title</th>
+              <th style={thStyle}>Topic</th>
               <th style={thStyle}>Difficulty</th>
               <th style={thStyle}>Time Limit</th>
               <th style={thStyle}>Memory Limit</th>
@@ -97,6 +125,7 @@ function ProblemListPage() {
                   <td style={{ ...tdStyle, fontWeight: "600", color: "#4338ca" }}>
                     {problem.title}
                   </td>
+                  <td style={tdStyle}>{problem.topic || "General"}</td>
                   <td style={tdStyle}>
                     <span
                       style={{

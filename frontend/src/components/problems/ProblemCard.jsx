@@ -17,6 +17,9 @@ function ProblemCard({ problem }) {
           <p style={{ marginTop: "8px", color: "#6b7280" }}>
             Difficulty: {problem.difficulty}
           </p>
+          <p style={{ marginTop: "6px", color: "#6b7280" }}>
+            Topic: {problem.topic || "General"}
+          </p>
         </div>
 
         <Link

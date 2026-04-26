@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models.contest_problem import ContestProblem
 from app.models.problem import Problem
+from app.models.submission import Submission
+from app.models.testcase import Testcase
 from app.schemas.problem import ProblemCreate, ProblemResponse, ProblemUpdate
 from app.services.problem_service import (
     create_problem_service,
@@ -62,6 +65,17 @@ def update_problem(problem_id: int, payload: ProblemUpdate, db: Session = Depend
             detail="Problem not found",
         )
 
+    existing_problem = db.query(Problem).filter(
+        (Problem.id != problem_id)
+        & ((Problem.code == payload.code) | (Problem.title == payload.title))
+    ).first()
+
+    if existing_problem:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Another problem with this title or code already exists",
+        )
+
     problem = update_problem_service(problem, payload)
     db.commit()
     db.refresh(problem)
@@ -79,6 +93,9 @@ def delete_problem(problem_id: int, db: Session = Depends(get_db)):
             detail="Problem not found",
         )
 
+    db.query(Testcase).filter(Testcase.problem_id == problem_id).delete()
+    db.query(ContestProblem).filter(ContestProblem.problem_id == problem_id).delete()
+    db.query(Submission).filter(Submission.problem_id == problem_id).delete()
     db.delete(problem)
     db.commit()
 

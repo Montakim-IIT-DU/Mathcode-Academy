@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.problem import Problem
 from app.models.testcase import Testcase
-from app.schemas.testcase import TestcaseCreate, TestcaseResponse
+from app.schemas.testcase import TestcaseCreate, TestcaseResponse, TestcaseUpdate
 
 router = APIRouter()
 
@@ -60,6 +60,30 @@ def create_testcase(payload: TestcaseCreate, db: Session = Depends(get_db)):
     )
 
     db.add(testcase)
+    db.commit()
+    db.refresh(testcase)
+
+    return testcase
+
+
+@router.put("/{testcase_id}", response_model=TestcaseResponse)
+def update_testcase(
+    testcase_id: int,
+    payload: TestcaseUpdate,
+    db: Session = Depends(get_db),
+):
+    testcase = db.query(Testcase).filter(Testcase.id == testcase_id).first()
+
+    if not testcase:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Testcase not found",
+        )
+
+    testcase.input_data = payload.input_data
+    testcase.expected_output = payload.expected_output
+    testcase.is_sample = payload.is_sample
+
     db.commit()
     db.refresh(testcase)
 

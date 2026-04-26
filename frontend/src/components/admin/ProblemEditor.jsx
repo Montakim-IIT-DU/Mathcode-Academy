@@ -1,8 +1,13 @@
-import { useState } from "react";
-import Input from "../common/Input";
+import { useEffect, useState } from "react";
+import {
+  createTestcase,
+  deleteTestcase,
+  getTestcasesByProblem,
+  updateTestcase
+} from "../../api/testcaseApi";
+import { deleteProblem, updateProblem } from "../../api/problemApi";
 import Button from "../common/Button";
-import { createProblem } from "../../api/problemApi";
-import { createTestcase } from "../../api/testcaseApi";
+import Input from "../common/Input";
 
 const emptyTestcase = {
   input_data: "",
@@ -10,20 +15,48 @@ const emptyTestcase = {
   is_sample: false
 };
 
-function ProblemForm({ onCreated }) {
-  const [form, setForm] = useState({
-    title: "",
-    code: "",
-    statement: "",
-    difficulty: "Easy",
-    topic: "General",
-    time_limit: 1,
-    memory_limit: 256,
-    tags: ""
-  });
+function getInitialForm(problem) {
+  return {
+    title: problem?.title || "",
+    code: problem?.code || "",
+    statement: problem?.statement || "",
+    difficulty: problem?.difficulty || "Easy",
+    topic: problem?.topic || "General",
+    time_limit: problem?.time_limit || 1,
+    memory_limit: problem?.memory_limit || 256,
+    tags: Array.isArray(problem?.tags) ? problem.tags.join(", ") : problem?.tags || ""
+  };
+}
 
-  const [message, setMessage] = useState("");
+function ProblemEditor({ problem, onCancel, onDeleted, onSaved }) {
+  const [form, setForm] = useState(getInitialForm(problem));
   const [testcases, setTestcases] = useState([{ ...emptyTestcase }]);
+  const [deletedTestcaseIds, setDeletedTestcaseIds] = useState([]);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProblem = async () => {
+      setLoading(true);
+      setMessage("");
+      setForm(getInitialForm(problem));
+      setDeletedTestcaseIds([]);
+
+      try {
+        const data = await getTestcasesByProblem(problem.id);
+        setTestcases(data.length > 0 ? data : [{ ...emptyTestcase }]);
+      } catch (error) {
+        setMessage("Failed to load testcases");
+        setTestcases([{ ...emptyTestcase }]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (problem?.id) {
+      loadProblem();
+    }
+  }, [problem]);
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -50,14 +83,18 @@ function ProblemForm({ onCreated }) {
   };
 
   const removeTestcase = (index) => {
-    setTestcases((prev) =>
-      prev.length === 1
-        ? [{ ...emptyTestcase }]
-        : prev.filter((_, testcaseIndex) => testcaseIndex !== index)
-    );
+    setTestcases((prev) => {
+      const testcase = prev[index];
+      if (testcase?.id) {
+        setDeletedTestcaseIds((ids) => [...ids, testcase.id]);
+      }
+
+      const next = prev.filter((_, testcaseIndex) => testcaseIndex !== index);
+      return next.length > 0 ? next : [{ ...emptyTestcase }];
+    });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
 
     const validTestcases = testcases.filter((testcase) =>
@@ -70,42 +107,92 @@ function ProblemForm({ onCreated }) {
     }
 
     try {
-      const createdProblem = await createProblem({
+      const updatedProblem = await updateProblem(problem.id, {
         ...form,
         time_limit: Number(form.time_limit),
         memory_limit: Number(form.memory_limit)
       });
 
       await Promise.all(
-        validTestcases.map((testcase) =>
-          createTestcase({
-            ...testcase,
-            problem_id: createdProblem.id
-          })
-        )
+        deletedTestcaseIds.map((testcaseId) => deleteTestcase(testcaseId))
       );
 
-      onCreated?.(createdProblem);
-      setMessage("Problem and testcases created successfully");
-      setForm({
-        title: "",
-        code: "",
-        statement: "",
-        difficulty: "Easy",
-        topic: "General",
-        time_limit: 1,
-        memory_limit: 256,
-        tags: ""
-      });
-      setTestcases([{ ...emptyTestcase }]);
+      await Promise.all(
+        validTestcases.map((testcase) => {
+          const payload = {
+            input_data: testcase.input_data,
+            expected_output: testcase.expected_output,
+            is_sample: Boolean(testcase.is_sample)
+          };
+
+          if (testcase.id) {
+            return updateTestcase(testcase.id, payload);
+          }
+
+          return createTestcase({
+            ...payload,
+            problem_id: problem.id
+          });
+        })
+      );
+
+      setMessage("Problem updated successfully");
+      onSaved?.(updatedProblem);
+      setDeletedTestcaseIds([]);
+      const latestTestcases = await getTestcasesByProblem(problem.id);
+      setTestcases(latestTestcases.length > 0 ? latestTestcases : [{ ...emptyTestcase }]);
     } catch (error) {
-      setMessage(error?.response?.data?.detail || "Failed to create problem");
+      setMessage(error?.response?.data?.detail || "Failed to update problem");
     }
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Delete problem "${problem.title}" and all of its testcases?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteProblem(problem.id);
+      onDeleted?.(problem.id);
+    } catch (error) {
+      setMessage(error?.response?.data?.detail || "Failed to delete problem");
+    }
+  };
+
+  if (loading) {
+    return <div className="card">Loading problem editor...</div>;
+  }
+
   return (
-    <form className="card" onSubmit={handleSubmit}>
-      <h2 style={{ color: "#4f46e5", marginBottom: "16px" }}>Create Problem</h2>
+    <form className="card" onSubmit={handleSave}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: "12px",
+          alignItems: "center",
+          marginBottom: "16px",
+          flexWrap: "wrap"
+        }}
+      >
+        <h2 style={{ color: "#4f46e5" }}>Edit Problem</h2>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            border: "1px solid #dbe2f0",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            background: "#fff",
+            color: "#374151",
+            fontWeight: "700"
+          }}
+        >
+          Cancel
+        </button>
+      </div>
 
       <Input label="Title" name="title" value={form.title} onChange={handleChange} />
       <Input label="Code" name="code" value={form.code} onChange={handleChange} />
@@ -122,7 +209,7 @@ function ProblemForm({ onCreated }) {
           style={{
             width: "100%",
             padding: "12px 14px",
-            borderRadius: "14px",
+            borderRadius: "10px",
             border: "1px solid #dbe2f0",
             background: "#f9fbff"
           }}
@@ -135,7 +222,6 @@ function ProblemForm({ onCreated }) {
           name="topic"
           value={form.topic}
           onChange={handleChange}
-          placeholder="Array, graph, number theory"
         />
 
         <div>
@@ -149,7 +235,7 @@ function ProblemForm({ onCreated }) {
             style={{
               width: "100%",
               padding: "12px 14px",
-              borderRadius: "14px",
+              borderRadius: "10px",
               border: "1px solid #dbe2f0",
               background: "#f9fbff"
             }}
@@ -165,7 +251,6 @@ function ProblemForm({ onCreated }) {
           name="tags"
           value={form.tags}
           onChange={handleChange}
-          placeholder="math, implementation"
         />
       </div>
 
@@ -216,7 +301,7 @@ function ProblemForm({ onCreated }) {
         <div className="grid">
           {testcases.map((testcase, index) => (
             <div
-              key={index}
+              key={testcase.id || index}
               style={{
                 padding: "14px",
                 border: "1px solid #e5e7eb",
@@ -316,7 +401,7 @@ function ProblemForm({ onCreated }) {
               >
                 <input
                   type="checkbox"
-                  checked={testcase.is_sample}
+                  checked={Boolean(testcase.is_sample)}
                   onChange={(e) =>
                     handleTestcaseChange(index, "is_sample", e.target.checked)
                   }
@@ -328,7 +413,19 @@ function ProblemForm({ onCreated }) {
         </div>
       </div>
 
-      <Button type="submit">Create Problem</Button>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <Button type="submit">Save Changes</Button>
+        <Button
+          type="button"
+          onClick={handleDelete}
+          style={{
+            background: "#dc2626",
+            boxShadow: "0 8px 20px rgba(220, 38, 38, 0.18)"
+          }}
+        >
+          Delete Problem
+        </Button>
+      </div>
 
       {message && (
         <div
@@ -348,4 +445,4 @@ function ProblemForm({ onCreated }) {
   );
 }
 
-export default ProblemForm;
+export default ProblemEditor;

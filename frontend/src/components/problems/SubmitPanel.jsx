@@ -3,7 +3,14 @@ import Button from "../common/Button";
 import { createSubmission } from "../../api/submissionApi";
 import { getUser } from "../../utils/storage";
 
-function SubmitPanel({ problemId, sourceCode, setSourceCode, language, setLanguage }) {
+function SubmitPanel({
+  problemId,
+  sourceCode,
+  setSourceCode,
+  language,
+  setLanguage,
+  contestId
+}) {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,6 +33,7 @@ function SubmitPanel({ problemId, sourceCode, setSourceCode, language, setLangua
       const payload = {
         user_id: user.id,
         problem_id: problemId,
+        contest_id: contestId ? Number(contestId) : null,
         language,
         source_code: sourceCode
       };
@@ -42,6 +50,11 @@ function SubmitPanel({ problemId, sourceCode, setSourceCode, language, setLangua
   return (
     <div className="card">
       <h3 style={{ color: "#8b5cf6", marginBottom: "12px" }}>Submit Solution</h3>
+      {contestId && (
+        <p style={{ color: "#6b7280", marginBottom: "14px", fontWeight: "600" }}>
+          Contest submission
+        </p>
+      )}
 
       <div style={{ marginBottom: "14px" }}>
         <label style={{ display: "block", fontWeight: "700", marginBottom: "8px" }}>

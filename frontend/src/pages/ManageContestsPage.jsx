@@ -6,18 +6,22 @@ import ContestCard from "../components/contests/ContestCard";
 function ManageContestsPage() {
   const [contests, setContests] = useState([]);
 
-  useEffect(() => {
-    const fetchContests = async () => {
-      try {
-        const data = await getContests();
-        setContests(data);
-      } catch (error) {
-        console.error("Failed to load contests", error);
-      }
-    };
+  const fetchContests = async () => {
+    try {
+      const data = await getContests();
+      setContests(data);
+    } catch (error) {
+      console.error("Failed to load contests", error);
+    }
+  };
 
+  useEffect(() => {
     fetchContests();
   }, []);
+
+  const handleContestCreated = (contest) => {
+    setContests((prev) => [contest, ...prev]);
+  };
 
   return (
     <div className="page-container">
@@ -27,7 +31,7 @@ function ManageContestsPage() {
       </p>
 
       <div className="grid two-column">
-        <ContestForm />
+        <ContestForm onCreated={handleContestCreated} />
 
         <div className="grid">
           {contests.length === 0 ? (

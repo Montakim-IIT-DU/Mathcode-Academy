@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { getContestById, joinContest } from "../api/contestApi";
-import ContestHeader from "../components/contests/ContestHeader";
 import Button from "../components/common/Button";
+import ContestHeader from "../components/contests/ContestHeader";
+import { getUser } from "../utils/storage";
 
 function ContestDetailsPage() {
   const { id } = useParams();
@@ -24,12 +25,27 @@ function ContestDetailsPage() {
   }, [id]);
 
   const handleJoin = async () => {
+    const user = getUser();
+
+    if (!user?.id) {
+      setMessage("Please log in before joining the contest.");
+      return;
+    }
+
     try {
-      const data = await joinContest(id);
+      const data = await joinContest(id, user.id);
       setMessage(data.message);
       setHasJoined(true);
+      setContest((prev) =>
+        prev
+          ? {
+              ...prev,
+              participant_count: data.participant_count ?? prev.participant_count
+            }
+          : prev
+      );
     } catch (error) {
-      setMessage("Failed to join contest");
+      setMessage(error?.response?.data?.detail || "Failed to join contest");
     }
   };
 
@@ -63,7 +79,8 @@ function ContestDetailsPage() {
       <div className="grid two-column" style={{ marginTop: "20px" }}>
         <div className="card">
           <h3 style={{ color: "#6366f1", marginBottom: "12px" }}>Contest Details</h3>
-          <p><strong>Status:</strong>
+          <p>
+            <strong>Status:</strong>
             <span
               style={{
                 marginLeft: "8px",
@@ -79,16 +96,31 @@ function ContestDetailsPage() {
               {contest.status}
             </span>
           </p>
-          <p style={{ marginTop: "10px" }}><strong>Start Time:</strong> {contest.start_time}</p>
-          <p style={{ marginTop: "10px" }}><strong>End Time:</strong> {contest.end_time}</p>
-          
+          <p style={{ marginTop: "10px" }}>
+            <strong>Type:</strong> {contest.contest_type || "Online"}
+          </p>
+          {contest.venue && (
+            <p style={{ marginTop: "10px" }}>
+              <strong>Venue:</strong> {contest.venue}
+            </p>
+          )}
+          <p style={{ marginTop: "10px" }}>
+            <strong>Participants:</strong> {contest.participant_count || 0}
+          </p>
+          <p style={{ marginTop: "10px" }}>
+            <strong>Start Time:</strong> {contest.start_time}
+          </p>
+          <p style={{ marginTop: "10px" }}>
+            <strong>End Time:</strong> {contest.end_time}
+          </p>
+
           <div style={{ marginTop: "16px" }}>
             <Link
               to={`/contests/${id}/standings`}
               style={{
                 display: "inline-block",
                 padding: "10px 16px",
-                borderRadius: "999px",
+                borderRadius: "6px",
                 background: "#f0f4ff",
                 color: "#4f46e5",
                 fontWeight: "700",
@@ -108,7 +140,7 @@ function ContestDetailsPage() {
           </p>
 
           <Button onClick={handleJoin} disabled={hasJoined}>
-            {hasJoined ? "Already Joined ✓" : "Join Contest"}
+            {hasJoined ? "Already Joined" : "Join Contest"}
           </Button>
 
           {message && (
@@ -126,6 +158,57 @@ function ContestDetailsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: "20px" }}>
+        <h3 style={{ color: "#4f46e5", marginBottom: "14px" }}>Contest Problems</h3>
+
+        {!contest.problems || contest.problems.length === 0 ? (
+          <p style={{ color: "#6b7280" }}>No problems have been added yet.</p>
+        ) : (
+          <div className="grid">
+            {contest.problems.map((problem) => (
+              <div
+                key={problem.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "14px",
+                  alignItems: "center",
+                  padding: "14px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "10px",
+                  background: "#ffffff",
+                  flexWrap: "wrap"
+                }}
+              >
+                <div>
+                  <span className="badge badge-primary">{problem.code}</span>
+                  <span className="badge badge-warning" style={{ marginLeft: "8px" }}>
+                    {problem.difficulty}
+                  </span>
+                  <h4 style={{ marginTop: "10px", color: "#1f2937" }}>{problem.title}</h4>
+                  <p style={{ marginTop: "6px", color: "#6b7280", fontSize: "14px" }}>
+                    {problem.topic || "General"}
+                  </p>
+                </div>
+
+                <Link
+                  to={`/problems/${problem.id}?contestId=${contest.id}`}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "6px",
+                    background: "#eef2ff",
+                    color: "#4f46e5",
+                    fontWeight: "700"
+                  }}
+                >
+                  Solve
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

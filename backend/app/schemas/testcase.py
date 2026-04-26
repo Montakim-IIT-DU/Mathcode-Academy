@@ -8,6 +8,12 @@ class TestcaseCreate(BaseModel):
     is_sample: bool = False
 
 
+class TestcaseUpdate(BaseModel):
+    input_data: str
+    expected_output: str
+    is_sample: bool = False
+
+
 class TestcaseResponse(BaseModel):
     id: int
     problem_id: int

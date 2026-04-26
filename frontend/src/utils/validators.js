@@ -71,6 +71,10 @@ export function validateProblemForm(values) {
     errors.difficulty = "Difficulty is required";
   }
 
+  if (!isRequired(values.topic)) {
+    errors.topic = "Topic is required";
+  }
+
   if (!isRequired(values.time_limit)) {
     errors.time_limit = "Time limit is required";
   }
@@ -99,6 +103,14 @@ export function validateContestForm(values) {
 
   if (!isRequired(values.end_time)) {
     errors.end_time = "End time is required";
+  }
+
+  if (!isRequired(values.contest_type)) {
+    errors.contest_type = "Contest type is required";
+  }
+
+  if (values.contest_type === "Onsite" && !isRequired(values.venue)) {
+    errors.venue = "Venue is required for onsite contests";
   }
 
   return errors;

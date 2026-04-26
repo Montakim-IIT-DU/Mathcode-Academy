@@ -20,6 +20,9 @@ function ContestCard({ contest }) {
       >
         <div>
           <span className={badgeClass}>{contest.status}</span>
+          <span className="badge badge-primary" style={{ marginLeft: "8px" }}>
+            {contest.contest_type || "Online"}
+          </span>
           <h3 style={{ marginTop: "12px", fontSize: "22px" }}>{contest.title}</h3>
         </div>
 
@@ -42,7 +45,14 @@ function ContestCard({ contest }) {
       </p>
 
       <div style={{ marginTop: "16px", color: "#6b7280", fontSize: "14px" }}>
-        <p>Start: {contest.start_time}</p>
+        {contest.venue && <p>Venue: {contest.venue}</p>}
+        <p style={{ marginTop: contest.venue ? "6px" : 0 }}>
+          Problems: {contest.problems?.length || 0}
+        </p>
+        <p style={{ marginTop: "6px" }}>
+          Participants: {contest.participant_count || 0}
+        </p>
+        <p style={{ marginTop: "6px" }}>Start: {contest.start_time}</p>
         <p style={{ marginTop: "6px" }}>End: {contest.end_time}</p>
       </div>
     </div>

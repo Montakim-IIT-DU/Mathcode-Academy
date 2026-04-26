@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getContests } from "../api/contestApi";
+import ContestCard from "../components/contests/ContestCard";
 
 function ContestListPage() {
   const [contests, setContests] = useState([]);
@@ -22,13 +23,11 @@ function ContestListPage() {
       <h1 className="section-title">Contests</h1>
 
       <div className="grid">
-        {contests.map((contest) => (
-          <div key={contest.id} className="card">
-            <h3>{contest.title}</h3>
-            <p style={{ marginTop: "8px" }}>{contest.description}</p>
-            <p style={{ marginTop: "8px" }}>Status: {contest.status}</p>
-          </div>
-        ))}
+        {contests.length === 0 ? (
+          <div className="card empty-state">No contests available yet.</div>
+        ) : (
+          contests.map((contest) => <ContestCard key={contest.id} contest={contest} />)
+        )}
       </div>
     </div>
   );

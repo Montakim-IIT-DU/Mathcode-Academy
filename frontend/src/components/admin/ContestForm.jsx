@@ -1,18 +1,37 @@
-import { useState } from "react";
-import Input from "../common/Input";
-import Button from "../common/Button";
+import { useEffect, useState } from "react";
 import { createContest } from "../../api/contestApi";
+import { getProblems } from "../../api/problemApi";
+import Button from "../common/Button";
+import Input from "../common/Input";
 
-function ContestForm() {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    start_time: "",
-    end_time: "",
-    status: "Upcoming"
-  });
+const emptyForm = {
+  title: "",
+  description: "",
+  contest_type: "Onsite",
+  venue: "",
+  start_time: "",
+  end_time: "",
+  status: "Upcoming",
+  problem_ids: []
+};
 
+function ContestForm({ onCreated }) {
+  const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState("");
+  const [problems, setProblems] = useState([]);
+
+  useEffect(() => {
+    const fetchProblems = async () => {
+      try {
+        const data = await getProblems();
+        setProblems(data);
+      } catch (error) {
+        console.error("Failed to load problems for contest form", error);
+      }
+    };
+
+    fetchProblems();
+  }, []);
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -21,19 +40,31 @@ function ContestForm() {
     }));
   };
 
+  const handleProblemToggle = (problemId) => {
+    setForm((prev) => {
+      const isSelected = prev.problem_ids.includes(problemId);
+
+      return {
+        ...prev,
+        problem_ids: isSelected
+          ? prev.problem_ids.filter((id) => id !== problemId)
+          : [...prev.problem_ids, problemId]
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      await createContest(form);
-      setMessage("Contest created successfully");
-      setForm({
-        title: "",
-        description: "",
-        start_time: "",
-        end_time: "",
-        status: "Upcoming"
+      const createdContest = await createContest({
+        ...form,
+        venue: form.contest_type === "Onsite" ? form.venue : "",
+        problem_ids: form.problem_ids.map(Number)
       });
+      onCreated?.(createdContest);
+      setMessage("Contest created successfully");
+      setForm(emptyForm);
     } catch (error) {
       setMessage(error?.response?.data?.detail || "Failed to create contest");
     }
@@ -62,6 +93,39 @@ function ContestForm() {
             background: "#f9fbff"
           }}
         />
+      </div>
+
+      <div className="grid two-column">
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ display: "block", fontWeight: "700", marginBottom: "8px" }}>
+            Contest Type
+          </label>
+          <select
+            name="contest_type"
+            value={form.contest_type}
+            onChange={handleChange}
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: "14px",
+              border: "1px solid #dbe2f0",
+              background: "#f9fbff"
+            }}
+          >
+            <option value="Onsite">Onsite</option>
+            <option value="Online">Online</option>
+          </select>
+        </div>
+
+        {form.contest_type === "Onsite" && (
+          <Input
+            label="Venue"
+            name="venue"
+            value={form.venue}
+            onChange={handleChange}
+            placeholder="Lab 1, Main Campus"
+          />
+        )}
       </div>
 
       <div className="grid two-column">
@@ -102,6 +166,48 @@ function ContestForm() {
           <option value="Running">Running</option>
           <option value="Finished">Finished</option>
         </select>
+      </div>
+
+      <div style={{ marginBottom: "18px" }}>
+        <label style={{ display: "block", fontWeight: "700", marginBottom: "10px" }}>
+          Problems
+        </label>
+
+        <div className="grid" style={{ maxHeight: "260px", overflowY: "auto" }}>
+          {problems.length === 0 ? (
+            <div className="empty-state" style={{ padding: "20px" }}>
+              No problems available yet.
+            </div>
+          ) : (
+            problems.map((problem) => (
+              <label
+                key={problem.id}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "10px",
+                  padding: "12px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "10px",
+                  background: form.problem_ids.includes(problem.id) ? "#f5f3ff" : "#fff"
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form.problem_ids.includes(problem.id)}
+                  onChange={() => handleProblemToggle(problem.id)}
+                  style={{ marginTop: "4px" }}
+                />
+                <span>
+                  <strong>{problem.code}</strong> - {problem.title}
+                  <span style={{ display: "block", color: "#6b7280", fontSize: "13px" }}>
+                    {problem.topic || "General"} | {problem.difficulty}
+                  </span>
+                </span>
+              </label>
+            ))
+          )}
+        </div>
       </div>
 
       <Button type="submit">Create Contest</Button>

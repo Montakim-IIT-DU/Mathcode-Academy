@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class SubmissionBase(BaseModel):
     user_id: int
     problem_id: int
+    contest_id: int | None = None
     language: str
     source_code: str
 

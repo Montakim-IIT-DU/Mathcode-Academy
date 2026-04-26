@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { getProblemById } from "../api/problemApi";
 import CodeEditor from "../components/problems/CodeEditor";
 import SubmitPanel from "../components/problems/SubmitPanel";
 
 function ProblemDetailsPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const contestId = searchParams.get("contestId");
   const [problem, setProblem] = useState(null);
   const [language, setLanguage] = useState("python");
   const [sourceCode, setSourceCode] = useState(`# Write your solution here\n`);
@@ -31,6 +33,13 @@ function ProblemDetailsPage() {
     );
   }
 
+  const tags = Array.isArray(problem.tags)
+    ? problem.tags
+    : String(problem.tags || "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+
   return (
     <div className="page-container">
       <div
@@ -53,6 +62,7 @@ function ProblemDetailsPage() {
 
         <div style={{ marginTop: "14px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <span className="badge badge-warning">{problem.difficulty}</span>
+          <span className="badge badge-primary">Topic: {problem.topic || "General"}</span>
           <span className="badge badge-primary">Time Limit: {problem.time_limit}s</span>
           <span className="badge badge-primary">Memory: {problem.memory_limit}MB</span>
         </div>
@@ -65,19 +75,15 @@ function ProblemDetailsPage() {
             {problem.statement}
           </p>
 
-          {problem.tags && (
+          {tags.length > 0 && (
             <div style={{ marginTop: "18px" }}>
               <h3 style={{ marginBottom: "10px", color: "#8b5cf6" }}>Tags</h3>
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                {String(problem.tags)
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean)
-                  .map((tag, index) => (
-                    <span key={index} className="badge badge-primary">
-                      {tag}
-                    </span>
-                  ))}
+                {tags.map((tag, index) => (
+                  <span key={index} className="badge badge-primary">
+                    {tag}
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -91,6 +97,7 @@ function ProblemDetailsPage() {
             setSourceCode={setSourceCode}
             language={language}
             setLanguage={setLanguage}
+            contestId={contestId}
           />
         </div>
       </div>

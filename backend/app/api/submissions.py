@@ -2,11 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models.contest import Contest
+from app.models.contest_participant import ContestParticipant
+from app.models.contest_problem import ContestProblem
 from app.models.problem import Problem
 from app.models.submission import Submission
+from app.models.testcase import Testcase
 from app.models.user import User
 from app.schemas.submission import SubmissionCreate, SubmissionResponse
-from app.services.judge_service import judge_submission_service, simulate_judge_result
+from app.services.judge_service import judge_submission_service
+from app.services.leaderboard_service import update_leaderboard_for_accepted_submission
 from app.services.submission_service import (
     create_submission_service,
     format_submission_response,
@@ -64,31 +69,65 @@ def create_submission(payload: SubmissionCreate, db: Session = Depends(get_db)):
             detail="Problem not found",
         )
 
-    judge_result = judge_submission_service(
-        language=payload.language,
-        source_code=payload.source_code,
-    )
+    contest = None
+    if payload.contest_id:
+        contest = db.query(Contest).filter(Contest.id == payload.contest_id).first()
+        if not contest:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Contest not found",
+            )
 
-    if not judge_result["success"]:
-        submission = create_submission_service(
-            payload=payload,
-            verdict=judge_result["verdict"],
+        contest_problem = db.query(ContestProblem).filter(
+            (ContestProblem.contest_id == contest.id)
+            & (ContestProblem.problem_id == problem.id)
+        ).first()
+        if not contest_problem:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This problem is not part of the selected contest.",
+            )
+
+        participant = db.query(ContestParticipant).filter(
+            (ContestParticipant.contest_id == contest.id)
+            & (ContestParticipant.user_id == user.id)
+        ).first()
+        if not participant:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Join this contest before submitting contest solutions.",
+            )
+
+    testcases = db.query(Testcase).filter(Testcase.problem_id == problem.id).all()
+
+    if not testcases:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This problem has no testcases configured yet.",
         )
-        db.add(submission)
-        db.commit()
-        db.refresh(submission)
-        return format_submission_response(submission)
 
     submission = create_submission_service(
         payload=payload,
-        verdict=judge_result["verdict"],
+        verdict="Pending",
     )
     db.add(submission)
     db.commit()
     db.refresh(submission)
 
-    final_verdict = simulate_judge_result(payload.source_code)
-    submission = update_submission_verdict_service(submission, final_verdict)
+    judge_result = judge_submission_service(
+        language=payload.language,
+        source_code=payload.source_code,
+        testcases=testcases,
+        time_limit=problem.time_limit,
+    )
+
+    submission = update_submission_verdict_service(
+        submission,
+        judge_result["verdict"],
+    )
+    if contest:
+        update_leaderboard_for_accepted_submission(db, submission, user, contest)
+
     db.commit()
     db.refresh(submission)
 

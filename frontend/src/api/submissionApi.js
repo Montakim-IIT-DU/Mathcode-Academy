@@ -1,7 +1,7 @@
 import api from "./axios";
 
 export const getSubmissions = async () => {
-  const response = await api.get("/submissions");
+  const response = await api.get("/submissions/");
   return response.data;
 };
 
@@ -11,7 +11,7 @@ export const getUserSubmissions = async (userId) => {
 };
 
 export const createSubmission = async (payload) => {
-  const response = await api.post("/submissions", payload);
+  const response = await api.post("/submissions/", payload);
   return response.data;
 };
 

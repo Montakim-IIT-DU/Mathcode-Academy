@@ -10,6 +10,7 @@ from app.services.leaderboard_service import (
     calculate_ranks,
     create_leaderboard_entry_service,
     format_leaderboard_entry,
+    recalculate_contest_ranks,
 )
 
 router = APIRouter()
@@ -32,11 +33,7 @@ def get_contest_leaderboard(contest_id: int, db: Session = Depends(get_db)):
             detail="Contest not found",
         )
 
-    entries = db.query(Leaderboard).filter(Leaderboard.contest_id == contest_id).all()
-    ranked_entries = calculate_ranks(entries)
-
-    for entry in ranked_entries:
-        db.add(entry)
+    ranked_entries = recalculate_contest_ranks(db, contest_id)
     db.commit()
 
     return [format_leaderboard_entry(entry) for entry in ranked_entries]
@@ -82,13 +79,7 @@ def create_leaderboard_entry(payload: LeaderboardCreate, db: Session = Depends(g
     db.commit()
     db.refresh(entry)
 
-    contest_entries = db.query(Leaderboard).filter(
-        Leaderboard.contest_id == payload.contest_id
-    ).all()
-    ranked_entries = calculate_ranks(contest_entries)
-
-    for ranked_entry in ranked_entries:
-        db.add(ranked_entry)
+    recalculate_contest_ranks(db, payload.contest_id)
     db.commit()
     db.refresh(entry)
 
