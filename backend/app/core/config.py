@@ -14,5 +14,5 @@ class Settings(BaseModel):
     BACKEND_PORT: int = 8000
     JUDGE_URL: str = "http://127.0.0.1:9000/judge"
 
-
+#Replace with your PC's IP
 settings = Settings()
