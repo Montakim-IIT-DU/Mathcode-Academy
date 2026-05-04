@@ -1,7 +1,8 @@
 import os
+import shutil
 import subprocess
 import sys
-import tempfile
+import uuid
 from pathlib import Path
 
 from app.utils.comparator import compare_output
@@ -49,8 +50,10 @@ def judge_submission(
 
     timeout_seconds = max(1, int(time_limit or 2))
 
-    with tempfile.TemporaryDirectory(prefix="mathcode_judge_") as workdir:
-        prepared = _prepare_solution(normalized_language, source_code, Path(workdir))
+    workdir = _create_workdir()
+
+    try:
+        prepared = _prepare_solution(normalized_language, source_code, workdir)
 
         if not prepared["success"]:
             return _result(
@@ -98,12 +101,23 @@ def judge_submission(
                     total_count=len(testcases),
                 )
 
-    return _result(
-        verdict=VERDICT_ACCEPTED,
-        message="All testcases passed",
-        passed_count=len(testcases),
-        total_count=len(testcases),
-    )
+        return _result(
+            verdict=VERDICT_ACCEPTED,
+            message="All testcases passed",
+            passed_count=len(testcases),
+            total_count=len(testcases),
+        )
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+
+def _create_workdir() -> Path:
+    base_dir = Path(os.environ.get("JUDGE_WORKDIR", Path.cwd() / ".judge_tmp"))
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    workdir = base_dir / f"mathcode_judge_{uuid.uuid4().hex}"
+    workdir.mkdir(parents=True, exist_ok=False)
+    return workdir
 
 
 def _prepare_solution(language: str, source_code: str, workdir: Path) -> dict:
@@ -144,12 +158,16 @@ def _prepare_python(source_code: str, workdir: Path) -> dict:
 
 
 def _prepare_cpp(source_code: str, workdir: Path) -> dict:
+    compiler = _find_cpp_compiler()
+    if compiler:
+        _ensure_path_contains(Path(compiler).parent)
+
     source_path = workdir / "solution.cpp"
     exe_path = workdir / ("solution.exe" if os.name == "nt" else "solution")
     source_path.write_text(source_code, encoding="utf-8")
 
     compile_result = _run_command(
-        ["g++", "-std=c++17", "-O2", str(source_path), "-o", str(exe_path)],
+        [compiler or "g++", "-std=c++17", "-O2", str(source_path), "-o", str(exe_path)],
         input_data="",
         timeout_seconds=10,
         cwd=str(workdir),
@@ -173,6 +191,34 @@ def _prepare_cpp(source_code: str, workdir: Path) -> dict:
         "success": True,
         "run_command": [str(exe_path)],
     }
+
+
+def _find_cpp_compiler() -> str | None:
+    configured_compiler = os.environ.get("CXX")
+    if configured_compiler and Path(configured_compiler).exists():
+        return configured_compiler
+
+    path_compiler = shutil.which("g++")
+    if path_compiler:
+        return path_compiler
+
+    for compiler_path in (
+        Path("C:/msys64/ucrt64/bin/g++.exe"),
+        Path("C:/msys64/mingw64/bin/g++.exe"),
+        Path("C:/msys64/clang64/bin/g++.exe"),
+    ):
+        if compiler_path.exists():
+            return str(compiler_path)
+
+    return None
+
+
+def _ensure_path_contains(directory: Path) -> None:
+    path_items = os.environ.get("PATH", "").split(os.pathsep)
+    directory_text = str(directory)
+
+    if directory_text not in path_items:
+        os.environ["PATH"] = directory_text + os.pathsep + os.environ.get("PATH", "")
 
 
 def _prepare_java(source_code: str, workdir: Path) -> dict:

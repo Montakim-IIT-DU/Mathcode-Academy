@@ -11,4 +11,6 @@ dist/
 .vscode/
 *.db
 judge/package-lock.json
+judge/.tmp/
+judge/.judge_tmp/
 frontend/public/favicon.ico

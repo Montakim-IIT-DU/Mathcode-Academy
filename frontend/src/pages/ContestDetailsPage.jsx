@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { getContestById, joinContest } from "../api/contestApi";
 import Button from "../components/common/Button";
 import ContestHeader from "../components/contests/ContestHeader";
+import useContestStatus from "../hooks/useContestStatus";
+import { getContestStatusStyle } from "../utils/contestStatus";
 import { getUser } from "../utils/storage";
 
 function ContestDetailsPage() {
@@ -10,6 +12,7 @@ function ContestDetailsPage() {
   const [contest, setContest] = useState(null);
   const [message, setMessage] = useState("");
   const [hasJoined, setHasJoined] = useState(false);
+  const currentStatus = useContestStatus(contest);
 
   useEffect(() => {
     const fetchContest = async () => {
@@ -57,24 +60,26 @@ function ContestDetailsPage() {
     );
   }
 
-  const getStatusBadgeStyle = () => {
-    switch (contest.status) {
-      case "Running":
-        return { background: "#dcfce7", color: "#15803d" };
-      case "Finished":
-        return { background: "#fee2e2", color: "#dc2626" };
-      case "Upcoming":
-        return { background: "#fef3c7", color: "#d97706" };
-      default:
-        return { background: "#e5e7eb", color: "#4b5563" };
-    }
-  };
-
-  const statusStyle = getStatusBadgeStyle();
+  const displayContest = { ...contest, status: currentStatus };
+  const statusStyle = getContestStatusStyle(currentStatus);
+  const canJoinContest = currentStatus === "Running";
+  const joinButtonText = hasJoined
+    ? "Already Joined"
+    : canJoinContest
+    ? "Join Contest"
+    : currentStatus === "Upcoming"
+    ? "Join Opens When Contest Starts"
+    : "Contest Finished";
+  const joinMessage =
+    currentStatus === "Upcoming"
+      ? "You can join only after the contest start time."
+      : currentStatus === "Finished"
+      ? "This contest has already finished."
+      : "Enter the contest, solve problems, and improve your ranking on the leaderboard.";
 
   return (
     <div className="page-container">
-      <ContestHeader contest={contest} />
+      <ContestHeader contest={displayContest} />
 
       <div className="grid two-column" style={{ marginTop: "20px" }}>
         <div className="card">
@@ -93,7 +98,7 @@ function ContestDetailsPage() {
                 color: statusStyle.color
               }}
             >
-              {contest.status}
+              {currentStatus}
             </span>
           </p>
           <p style={{ marginTop: "10px" }}>
@@ -136,11 +141,11 @@ function ContestDetailsPage() {
         <div className="card">
           <h3 style={{ color: "#8b5cf6", marginBottom: "12px" }}>Join This Contest</h3>
           <p style={{ color: "#4b5563", lineHeight: "1.8", marginBottom: "16px" }}>
-            Enter the contest, solve problems, and improve your ranking on the leaderboard.
+            {joinMessage}
           </p>
 
-          <Button onClick={handleJoin} disabled={hasJoined}>
-            {hasJoined ? "Already Joined" : "Join Contest"}
+          <Button onClick={handleJoin} disabled={hasJoined || !canJoinContest}>
+            {joinButtonText}
           </Button>
 
           {message && (

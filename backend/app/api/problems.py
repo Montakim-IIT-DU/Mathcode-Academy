@@ -7,6 +7,7 @@ from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.testcase import Testcase
 from app.schemas.problem import ProblemCreate, ProblemResponse, ProblemUpdate
+from app.services.hint_service import generate_problem_hints
 from app.services.problem_service import (
     create_problem_service,
     format_problem_response,
@@ -33,6 +34,19 @@ def get_problem_by_id(problem_id: int, db: Session = Depends(get_db)):
         )
 
     return format_problem_response(problem)
+
+
+@router.get("/{problem_id}/hint")
+def get_problem_hint(problem_id: int, db: Session = Depends(get_db)):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+
+    if not problem:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+
+    return generate_problem_hints(problem)
 
 
 @router.post("/", response_model=ProblemResponse, status_code=status.HTTP_201_CREATED)

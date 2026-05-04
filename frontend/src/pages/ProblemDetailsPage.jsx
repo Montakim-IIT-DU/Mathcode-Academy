@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { getProblemById } from "../api/problemApi";
+import { getProblemById, getProblemHint } from "../api/problemApi";
+import { getSampleTestcasesByProblem } from "../api/testcaseApi";
+import Button from "../components/common/Button";
 import CodeEditor from "../components/problems/CodeEditor";
 import SubmitPanel from "../components/problems/SubmitPanel";
 
@@ -9,6 +11,10 @@ function ProblemDetailsPage() {
   const [searchParams] = useSearchParams();
   const contestId = searchParams.get("contestId");
   const [problem, setProblem] = useState(null);
+  const [sampleTestcases, setSampleTestcases] = useState([]);
+  const [hintData, setHintData] = useState(null);
+  const [hintMessage, setHintMessage] = useState("");
+  const [hintLoading, setHintLoading] = useState(false);
   const [language, setLanguage] = useState("python");
   const [sourceCode, setSourceCode] = useState(`# Write your solution here\n`);
 
@@ -17,13 +23,37 @@ function ProblemDetailsPage() {
       try {
         const data = await getProblemById(id);
         setProblem(data);
+
+        try {
+          const samples = await getSampleTestcasesByProblem(id);
+          setSampleTestcases(samples);
+        } catch (error) {
+          console.error("Failed to load sample testcases", error);
+          setSampleTestcases([]);
+        }
       } catch (error) {
         console.error("Failed to load problem", error);
       }
     };
 
+    setHintData(null);
+    setHintMessage("");
     fetchProblem();
   }, [id]);
+
+  const handleLoadHints = async () => {
+    try {
+      setHintLoading(true);
+      setHintMessage("");
+      const data = await getProblemHint(problem.id);
+      setHintData(data);
+    } catch (error) {
+      console.error("Failed to load hints", error);
+      setHintMessage(error?.response?.data?.detail || "Failed to load hints");
+    } finally {
+      setHintLoading(false);
+    }
+  };
 
   if (!problem) {
     return (
@@ -75,6 +105,77 @@ function ProblemDetailsPage() {
             {problem.statement}
           </p>
 
+          <div style={{ marginTop: "22px" }}>
+            <h3 style={{ marginBottom: "12px", color: "#8b5cf6" }}>Sample Test Cases</h3>
+
+            {sampleTestcases.length > 0 ? (
+              <div className="grid">
+                {sampleTestcases.map((testcase, index) => (
+                  <div
+                    key={testcase.id}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "16px",
+                      background: "#f8faff",
+                      padding: "16px"
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "10px",
+                        marginBottom: "12px"
+                      }}
+                    >
+                      <strong style={{ color: "#4338ca" }}>Sample {index + 1}</strong>
+                      <span className="badge badge-success">Admin marked</span>
+                    </div>
+
+                    <div className="grid" style={{ gap: "12px" }}>
+                      <div>
+                        <strong style={{ display: "block", marginBottom: "6px" }}>Input</strong>
+                        <pre
+                          style={{
+                            overflowX: "auto",
+                            whiteSpace: "pre-wrap",
+                            padding: "12px",
+                            borderRadius: "12px",
+                            background: "#111827",
+                            color: "#f9fafb"
+                          }}
+                        >
+                          {testcase.input_data}
+                        </pre>
+                      </div>
+
+                      <div>
+                        <strong style={{ display: "block", marginBottom: "6px" }}>
+                          Expected Output
+                        </strong>
+                        <pre
+                          style={{
+                            overflowX: "auto",
+                            whiteSpace: "pre-wrap",
+                            padding: "12px",
+                            borderRadius: "12px",
+                            background: "#eef2ff",
+                            color: "#312e81"
+                          }}
+                        >
+                          {testcase.expected_output}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: "#6b7280" }}>No sample test cases are available yet.</p>
+            )}
+          </div>
+
           {tags.length > 0 && (
             <div style={{ marginTop: "18px" }}>
               <h3 style={{ marginBottom: "10px", color: "#8b5cf6" }}>Tags</h3>
@@ -99,6 +200,45 @@ function ProblemDetailsPage() {
             setLanguage={setLanguage}
             contestId={contestId}
           />
+
+          <div className="card">
+            <h3 style={{ color: "#8b5cf6", marginBottom: "12px" }}>AI Hints</h3>
+            <Button onClick={handleLoadHints} disabled={hintLoading} style={{ width: "100%" }}>
+              {hintLoading ? "Loading Hints..." : "Get Hints"}
+            </Button>
+
+            {hintMessage && (
+              <div
+                style={{
+                  marginTop: "14px",
+                  padding: "12px 14px",
+                  borderRadius: "14px",
+                  background: "#fee2e2",
+                  color: "#991b1b",
+                  fontWeight: "600"
+                }}
+              >
+                {hintMessage}
+              </div>
+            )}
+
+            {hintData?.hints?.length > 0 && (
+              <ol
+                style={{
+                  marginTop: "16px",
+                  paddingLeft: "20px",
+                  color: "#374151",
+                  lineHeight: "1.7"
+                }}
+              >
+                {hintData.hints.map((hint, index) => (
+                  <li key={index} style={{ marginBottom: "8px" }}>
+                    {hint}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
       </div>
     </div>

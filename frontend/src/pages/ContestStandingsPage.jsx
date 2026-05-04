@@ -3,12 +3,15 @@ import { useParams } from "react-router-dom";
 import { getContestById } from "../api/contestApi";
 import { getContestLeaderboard } from "../api/leaderboardApi";
 import LeaderboardTable from "../components/leaderboard/LeaderboardTable";
+import useContestStatus from "../hooks/useContestStatus";
+import { getContestStatusStyle } from "../utils/contestStatus";
 
 function ContestStandingsPage() {
   const { id } = useParams();
   const [contest, setContest] = useState(null);
   const [standings, setStandings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const currentStatus = useContestStatus(contest);
 
   useEffect(() => {
     const fetchContestData = async () => {
@@ -44,6 +47,8 @@ function ContestStandingsPage() {
     );
   }
 
+  const statusStyle = getContestStatusStyle(currentStatus);
+
   return (
     <div className="page-container">
       <div
@@ -64,21 +69,11 @@ function ContestStandingsPage() {
               className="badge"
               style={{
                 marginLeft: "8px",
-                background:
-                  contest.status === "Running"
-                    ? "#dcfce7"
-                    : contest.status === "Finished"
-                    ? "#fee2e2"
-                    : "#fef3c7",
-                color:
-                  contest.status === "Running"
-                    ? "#15803d"
-                    : contest.status === "Finished"
-                    ? "#dc2626"
-                    : "#d97706"
+                background: statusStyle.background,
+                color: statusStyle.color
               }}
             >
-              {contest.status}
+              {currentStatus}
             </span>
           </div>
           <div>

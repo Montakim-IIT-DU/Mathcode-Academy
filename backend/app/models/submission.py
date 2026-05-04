@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 
 from app.db.session import Base
@@ -13,3 +15,4 @@ class Submission(Base):
     language = Column(String, nullable=False)
     source_code = Column(Text, nullable=False)
     verdict = Column(String, default="Pending")
+    created_at = Column(String, default=lambda: datetime.now().isoformat(timespec="seconds"))

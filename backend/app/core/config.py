@@ -1,3 +1,5 @@
+import os
+
 from pydantic import BaseModel
 
 
@@ -12,7 +14,7 @@ class Settings(BaseModel):
 
     BACKEND_HOST: str = "127.0.0.1"
     BACKEND_PORT: int = 8000
-    JUDGE_URL: str = "http://127.0.0.1:9000/judge"
+    JUDGE_URL: str = os.environ.get("JUDGE_URL", "http://127.0.0.1:9000/judge")
 
 #Replace with your PC's IP
 settings = Settings()

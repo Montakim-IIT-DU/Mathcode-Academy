@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.constants import CONTEST_RUNNING
 from app.db.session import get_db
 from app.models.contest import Contest
 from app.models.contest_participant import ContestParticipant
@@ -16,6 +17,8 @@ from app.schemas.contest import (
 from app.services.contest_service import (
     create_contest_service,
     format_contest_response,
+    refresh_contest_status,
+    refresh_contest_statuses,
     update_contest_service,
 )
 from app.services.leaderboard_service import (
@@ -29,6 +32,7 @@ router = APIRouter()
 @router.get("/", response_model=list[ContestResponse])
 def get_all_contests(db: Session = Depends(get_db)):
     contests = db.query(Contest).all()
+    refresh_contest_statuses(contests, db)
     return [format_contest_response(contest, db) for contest in contests]
 
 
@@ -42,6 +46,7 @@ def get_contest_by_id(contest_id: int, db: Session = Depends(get_db)):
             detail="Contest not found",
         )
 
+    refresh_contest_status(contest, db)
     return format_contest_response(contest, db)
 
 
@@ -128,11 +133,18 @@ def join_contest(
             detail="Contest not found",
         )
 
+    refresh_contest_status(contest, db)
     participant_count = (
         db.query(ContestParticipant)
         .filter(ContestParticipant.contest_id == contest.id)
         .count()
     )
+
+    if contest.status != CONTEST_RUNNING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can join this contest only while it is running.",
+        )
 
     if payload and payload.user_id:
         user = db.query(User).filter(User.id == payload.user_id).first()

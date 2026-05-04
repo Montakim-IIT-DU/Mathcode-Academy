@@ -29,6 +29,22 @@ def get_testcases_for_problem(problem_id: int, db: Session = Depends(get_db)):
     return testcases
 
 
+@router.get("/problem/{problem_id}/samples", response_model=list[TestcaseResponse])
+def get_sample_testcases_for_problem(problem_id: int, db: Session = Depends(get_db)):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+
+    if not problem:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Problem not found",
+        )
+
+    testcases = db.query(Testcase).filter(
+        (Testcase.problem_id == problem_id) & Testcase.is_sample.is_(True)
+    ).all()
+    return testcases
+
+
 @router.get("/{testcase_id}", response_model=TestcaseResponse)
 def get_testcase_by_id(testcase_id: int, db: Session = Depends(get_db)):
     testcase = db.query(Testcase).filter(Testcase.id == testcase_id).first()

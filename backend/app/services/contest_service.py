@@ -30,6 +30,41 @@ def update_contest_service(contest: Contest, payload) -> Contest:
     return contest
 
 
+def set_current_contest_status(contest: Contest) -> bool:
+    current_status = get_contest_status(contest.start_time, contest.end_time)
+
+    if contest.status == current_status:
+        return False
+
+    contest.status = current_status
+    return True
+
+
+def refresh_contest_status(contest: Contest, db=None) -> Contest:
+    changed = set_current_contest_status(contest)
+
+    if changed and db:
+        db.add(contest)
+        db.commit()
+        db.refresh(contest)
+
+    return contest
+
+
+def refresh_contest_statuses(contests: list[Contest], db=None) -> list[Contest]:
+    changed = False
+
+    for contest in contests:
+        changed = set_current_contest_status(contest) or changed
+
+    if changed and db:
+        db.commit()
+        for contest in contests:
+            db.refresh(contest)
+
+    return contests
+
+
 def format_contest_response(contest: Contest, db=None) -> dict:
     problems = []
     participant_count = 0

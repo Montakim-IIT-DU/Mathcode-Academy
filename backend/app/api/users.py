@@ -5,6 +5,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.models.submission import Submission
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.services.performance_service import build_user_performance
 from app.utils.hashing import hash_password
 
 router = APIRouter()
@@ -54,6 +55,19 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
         "accepted_submissions": accepted_count,
         "acceptance_rate": (accepted_count / total_submissions * 100) if total_submissions > 0 else 0,
     }
+
+
+@router.get("/{user_id}/performance")
+def get_user_performance(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return build_user_performance(db, user)
 
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

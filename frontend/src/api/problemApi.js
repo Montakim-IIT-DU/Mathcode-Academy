@@ -10,6 +10,11 @@ export const getProblemById = async (id) => {
   return response.data;
 };
 
+export const getProblemHint = async (id) => {
+  const response = await api.get(`/problems/${id}/hint`);
+  return response.data;
+};
+
 export const createProblem = async (payload) => {
   const response = await api.post("/problems/", payload);
   return response.data;

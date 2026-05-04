@@ -16,6 +16,7 @@ class SubmissionCreate(SubmissionBase):
 class SubmissionResponse(SubmissionBase):
     id: int
     verdict: str
+    created_at: str | None = None
 
     model_config = {
         "from_attributes": True

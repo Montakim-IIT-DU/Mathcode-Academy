@@ -27,4 +27,5 @@ def format_submission_response(submission: Submission) -> dict:
         "language": submission.language,
         "source_code": submission.source_code,
         "verdict": submission.verdict,
+        "created_at": submission.created_at,
     }

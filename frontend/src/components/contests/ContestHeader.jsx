@@ -1,7 +1,14 @@
 import ContestTimer from "./ContestTimer";
+import {
+  getContestCountdownLabel,
+  getContestCountdownTarget
+} from "../../utils/contestStatus";
 
 function ContestHeader({ contest }) {
   if (!contest) return null;
+
+  const countdownTarget = getContestCountdownTarget(contest);
+  const countdownLabel = getContestCountdownLabel(contest.status);
 
   return (
     <div
@@ -36,7 +43,7 @@ function ContestHeader({ contest }) {
         </div>
 
         <div style={{ minWidth: "220px" }}>
-          <ContestTimer targetTime={contest.end_time} />
+          <ContestTimer targetTime={countdownTarget} label={countdownLabel} />
         </div>
       </div>
     </div>

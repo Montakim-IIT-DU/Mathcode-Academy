@@ -101,7 +101,8 @@ function Navbar() {
             </>
           ) : (
             <>
-              <span
+              <Link
+                to={`/profile/${user.id}`}
                 style={{
                   padding: "8px 12px",
                   borderRadius: "999px",
@@ -111,7 +112,7 @@ function Navbar() {
                 }}
               >
                 {user.username}
-              </span>
+              </Link>
               <button
                 onClick={handleLogout}
                 style={{

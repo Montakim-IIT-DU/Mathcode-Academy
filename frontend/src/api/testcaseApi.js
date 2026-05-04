@@ -10,6 +10,11 @@ export const getTestcasesByProblem = async (problemId) => {
   return response.data;
 };
 
+export const getSampleTestcasesByProblem = async (problemId) => {
+  const response = await api.get(`/testcases/problem/${problemId}/samples`);
+  return response.data;
+};
+
 export const getTestcaseById = async (id) => {
   const response = await api.get(`/testcases/${id}`);
   return response.data;

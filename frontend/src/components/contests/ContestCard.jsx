@@ -1,12 +1,10 @@
 import { Link } from "react-router-dom";
+import useContestStatus from "../../hooks/useContestStatus";
+import { getContestStatusBadgeClass } from "../../utils/contestStatus";
 
 function ContestCard({ contest }) {
-  const badgeClass =
-    contest.status === "Running"
-      ? "badge badge-success"
-      : contest.status === "Upcoming"
-      ? "badge badge-warning"
-      : "badge badge-danger";
+  const currentStatus = useContestStatus(contest);
+  const badgeClass = getContestStatusBadgeClass(currentStatus);
 
   return (
     <div className="card">
@@ -19,7 +17,7 @@ function ContestCard({ contest }) {
         }}
       >
         <div>
-          <span className={badgeClass}>{contest.status}</span>
+          <span className={badgeClass}>{currentStatus}</span>
           <span className="badge badge-primary" style={{ marginLeft: "8px" }}>
             {contest.contest_type || "Online"}
           </span>

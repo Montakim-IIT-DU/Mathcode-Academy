@@ -6,6 +6,7 @@ from app.models.contest import Contest
 from app.models.problem import Problem
 from app.models.submission import Submission
 from app.models.user import User
+from app.services.contest_service import refresh_contest_statuses
 
 router = APIRouter()
 
@@ -33,6 +34,7 @@ def get_admin_overview(db: Session = Depends(get_db)):
     recent_users = db.query(User).order_by(User.id.desc()).limit(5).all()
     recent_problems = db.query(Problem).order_by(Problem.id.desc()).limit(5).all()
     recent_contests = db.query(Contest).order_by(Contest.id.desc()).limit(5).all()
+    refresh_contest_statuses(recent_contests, db)
     recent_submissions = db.query(Submission).order_by(Submission.id.desc()).limit(5).all()
 
     return {

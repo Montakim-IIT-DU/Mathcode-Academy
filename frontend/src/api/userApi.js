@@ -10,6 +10,11 @@ export const getUserStats = async (userId) => {
   return response.data;
 };
 
+export const getUserPerformance = async (userId) => {
+  const response = await api.get(`/users/${userId}/performance`);
+  return response.data;
+};
+
 export const getAllUsers = async () => {
   const response = await api.get("/users");
   return response.data;

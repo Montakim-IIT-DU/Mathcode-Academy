@@ -38,4 +38,9 @@ def init_db():
     )
     _add_column_if_missing("contests", "venue", "venue VARCHAR")
     _add_column_if_missing("submissions", "contest_id", "contest_id INTEGER")
+    _add_column_if_missing("submissions", "created_at", "created_at VARCHAR")
+    with engine.begin() as connection:
+        connection.execute(
+            text("UPDATE submissions SET created_at = date('now') WHERE created_at IS NULL")
+        )
     print("Database tables created successfully.")
